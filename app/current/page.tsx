@@ -17,7 +17,7 @@ export default function Current() {
       <div className="current-visual wardrobe-visual">
         <Shirt size={86} strokeWidth={1} />
         <span className="small-label">AI DIGITAL WARDROBE</span>
-        <h2>내 옷장의 가능성을,<br />한 조합 더.</h2>
+        <h2>내 옷장의 조합을<br />효율적으로</h2>
         <div className="chips"><span className="chip">Digital Wardrobe</span><span className="chip">Compatibility</span><span className="chip">Wardrobe Utility</span></div>
       </div>
       <div className="current-copy">
