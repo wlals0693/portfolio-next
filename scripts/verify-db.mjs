@@ -48,6 +48,18 @@ try {
   await post("/api/messages", { name: marker, email: "test@example.com", content: marker });
   assert.equal(await db.collection("messages").countDocuments({ name: marker, content: marker }), 1);
   console.log("PASS: 메시지 DB 저장");
+  const rejected = await fetch(`${base}/api/messages/inbox`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password: "invalid" }),
+  });
+  assert.equal(rejected.status, 401);
+  const denied = await rejected.json();
+  assert.equal(denied.messages, undefined);
+  const inbox = await post("/api/messages/inbox", { password: process.env.ADMIN_PASSWORD || "5425", page: 1 });
+  const testMessage = inbox.data.messages.find(m => m.name === marker);
+  assert.equal(testMessage?.content, marker);
+  assert.equal(testMessage?.email, "test@example.com");
+  console.log("PASS: 관리자 메시지 조회 및 비인증 요청 차단 (메시지 내용 비공개)");
 } catch (error) {
   console.error("검증 실패:", error instanceof assert.AssertionError ? error.message : error?.code || error?.name);
   process.exitCode = 1;

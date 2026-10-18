@@ -1,6 +1,7 @@
 import { PageTitle, External } from "@/components/shared";
 import { profile, studies } from "@/lib/content";
 import Contact from "@/components/contact";
+import MessageInbox from "@/components/message-inbox";
 import { ArrowUpRight, Code2 } from "lucide-react";
 export const metadata = { title: "About Me" };
 export default function About() {
@@ -94,11 +95,9 @@ export default function About() {
       <section className="contact-section">
         <div>
           <h2>메시지를 남겨주세요</h2>
-          <p className="muted">
-            프로젝트 이야기, 피드백, 짧은 인사도 좋습니다.
-          </p>
         </div>
         <Contact />
+        <MessageInbox />
       </section>
     </div>
   );
