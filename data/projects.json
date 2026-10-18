@@ -1,0 +1,74 @@
+[
+  {
+    "title": "웹프로그래밍 과제",
+    "category": "웹 프로젝트",
+    "status": "완료",
+    "summary": "HTML과 CSS로 시작한 첫 웹페이지. 기본에 충실하게 콘텐츠와 미디어를 구성했습니다.",
+    "tech": ["HTML", "CSS"],
+    "features": ["리스트 소개 페이지", "음성 및 영상 재생", "시간표 페이지"],
+    "image": "/media/hjc.png",
+    "deployUrl": "https://hcj2026.vercel.app/",
+    "githubUrl": "https://github.com/wlals0693/hcj2026",
+    "videoUrl": ""
+  },
+  {
+    "title": "멋사 PBL 프로젝트",
+    "category": "웹 프로젝트",
+    "status": "완료",
+    "summary": "멋쟁이사자처럼 PBL 특강 과제. 요구사항을 화면과 카드형 콘텐츠로 옮긴 프로젝트입니다.",
+    "tech": ["HTML", "CSS"],
+    "features": [
+      "PBL 과제 요구사항 구현",
+      "페이지 구조 설계",
+      "카드형 콘텐츠 배치"
+    ],
+    "image": "/media/pbl.png",
+    "deployUrl": "https://pbl-one-orcin.vercel.app/",
+    "githubUrl": "https://github.com/wlals0693/PBL",
+    "videoUrl": ""
+  },
+  {
+    "title": "CBT 프로젝트",
+    "category": "프로그램",
+    "status": "완료",
+    "summary": "과목별 랜덤 문제 풀이와 정답 확인을 지원하는 Python 기반 CBT 학습 프로그램입니다.",
+    "tech": ["Python", "Tkinter", "JSON"],
+    "features": [
+      "JSON 문제 데이터",
+      "과목별 랜덤 출제",
+      "정답·오답 확인과 문제 제외"
+    ],
+    "image": "",
+    "deployUrl": "",
+    "githubUrl": "https://github.com/wlals0693/CBT",
+    "videoUrl": "https://youtu.be/TdLxEX8uL8k"
+  },
+  {
+    "title": "F1 정보 소개 프로젝트",
+    "category": "웹 프로젝트",
+    "status": "진행 중",
+    "summary": "F1 입문자를 위한 규칙, 일정, 차량과 팀 정보를 한곳에 정리하는 웹사이트입니다.",
+    "tech": ["HTML", "CSS", "JavaScript"],
+    "features": ["F1 기본 규칙 소개", "일정 및 차량 정보", "팀 정보 제공"],
+    "image": "",
+    "deployUrl": "",
+    "githubUrl": "https://github.com/wlals0693/f1master",
+    "videoUrl": "https://youtu.be/5FsOk-uDQDo"
+  },
+  {
+    "title": "대외활동 분석 서비스",
+    "category": "웹 프로젝트",
+    "status": "진행 중",
+    "summary": "공모전과 대외활동 공고를 살펴보고 자신의 준비 상태를 판단하도록 돕는 서비스입니다.",
+    "tech": ["HTML", "CSS", "JavaScript"],
+    "features": [
+      "대외활동 공고 정보",
+      "사용자 준비 상태 확인",
+      "공고·사용자 정보 비교 흐름"
+    ],
+    "image": "",
+    "deployUrl": "https://idea-lion-front.vercel.app/",
+    "githubUrl": "",
+    "videoUrl": "https://youtu.be/F_8dl2-wvQQ"
+  }
+]
