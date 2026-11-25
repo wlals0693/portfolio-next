@@ -19,7 +19,7 @@ export async function POST(
     const p = await ProjectModel.findOneAndUpdate(
       { _id: id, likedBy: { $ne: visitor } },
       { $inc: { likes: 1 }, $addToSet: { likedBy: visitor } },
-      { new: true },
+      { returnDocument: "after" },
     ).lean();
     const existing = p || (await ProjectModel.findById(id).lean());
     if (!existing)

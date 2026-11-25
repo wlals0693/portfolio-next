@@ -18,6 +18,7 @@ export function serializeProject(doc: Record<string, any>): Project {
     likes: doc.likes || 0,
     comments: (doc.comments || []).map((c: Record<string, any>) => ({
       id: String(c._id),
+      authorId: c.authorId ? String(c.authorId) : null,
       name: c.name,
       content: c.content,
       createdAt: new Date(c.createdAt).toISOString(),

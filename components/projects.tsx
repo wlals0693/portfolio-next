@@ -1,5 +1,7 @@
 "use client";
+import Link from "next/link";
 import { useState, useRef } from "react";
+import { useSession } from "next-auth/react";
 import {
   Plus,
   Heart,
@@ -11,11 +13,11 @@ import {
 } from "lucide-react";
 import type { Project } from "@/lib/types";
 import { External } from "./shared";
-async function post(path: string, data: unknown) {
+async function request(path: string, data?: unknown, method = "POST") {
   const r = await fetch(path, {
-    method: "POST",
+    method,
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
+    ...(data !== undefined ? { body: JSON.stringify(data) } : {}),
   });
   const b = await r.json();
   if (!r.ok) throw new Error(b.error || "요청하지 못했습니다.");
@@ -35,18 +37,22 @@ export default function Projects({
   connected: boolean;
   error?: boolean;
 }) {
+  const { data: session } = useSession();
+  const user = session?.user;
+  const admin = user?.role === "admin";
   const [projects, setProjects] = useState(initial);
   const [filter, setFilter] = useState("전체");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [adding, setAdding] = useState(false);
-  const [verified, setVerified] = useState(false);
-  const [password, setPassword] = useState("");
   const [feedback, setFeedback] = useState("");
   const [busy, setBusy] = useState(false);
   const [liked, setLiked] = useState<string[]>([]);
+  const [editingComment, setEditingComment] = useState<string | null>(null);
+  const [commentDraft, setCommentDraft] = useState("");
   const detail = useRef<HTMLDialogElement>(null);
-  const add = useRef<HTMLDialogElement>(null);
+  const editor = useRef<HTMLDialogElement>(null);
   const p = projects.find((p) => p.id === selected);
   const visible = projects.filter(
     (p) =>
@@ -61,59 +67,93 @@ export default function Projects({
   function open(p: Project) {
     setSelected(p.id);
     setFeedback("");
+    setEditingComment(null);
     detail.current?.showModal();
   }
-  async function like(p: Project) {
-    if (busy || liked.includes(p.id)) return;
+  function edit(p: Project | null) {
+    setEditingProject(p);
+    setAdding(true);
+    setFeedback("");
+    editor.current?.showModal();
+  }
+  async function act(task: () => Promise<void>) {
+    if (busy) return;
     setBusy(true);
     setFeedback("");
     try {
-      const b = await post(`/api/projects/${p.id}/like`, {});
-      update({ ...p, likes: b.likes });
-      setLiked((prev) => [...prev, p.id]);
+      await task();
     } catch (e) {
       setFeedback((e as Error).message);
     } finally {
       setBusy(false);
     }
   }
-  async function comment(e: React.FormEvent<HTMLFormElement>) {
+  async function like(p: Project) {
+    if (liked.includes(p.id)) return;
+    await act(async () => {
+      const b = await request(`/api/projects/${p.id}/like`, {});
+      update({ ...p, likes: b.likes });
+      setLiked((prev) => [...prev, p.id]);
+    });
+  }
+  async function save(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const values = Object.fromEntries(new FormData(e.currentTarget));
+    await act(async () => {
+      const b = await request(
+        editingProject ? `/api/projects/${editingProject.id}` : "/api/projects",
+        values,
+        editingProject ? "PATCH" : "POST",
+      );
+      if (editingProject) update(b.project);
+      else setProjects((prev) => [b.project, ...prev]);
+      editor.current?.close();
+      setFeedback(
+        editingProject
+          ? "프로젝트를 수정했습니다."
+          : "프로젝트를 추가했습니다.",
+      );
+    });
+  }
+  async function removeProject(p: Project) {
+    if (
+      !window.confirm(
+        `‘${p.title}’ 프로젝트와 댓글을 삭제할까요? 되돌릴 수 없습니다.`,
+      )
+    )
+      return;
+    await act(async () => {
+      await request(`/api/projects/${p.id}`, undefined, "DELETE");
+      detail.current?.close();
+      setProjects((prev) => prev.filter((x) => x.id !== p.id));
+      setFeedback("프로젝트를 삭제했습니다.");
+    });
+  }
+  async function writeComment(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!p) return;
     const form = e.currentTarget;
-    setBusy(true);
-    setFeedback("");
-    try {
-      const b = await post(
-        `/api/projects/${p.id}/comments`,
-        Object.fromEntries(new FormData(form)),
-      );
+    const values = Object.fromEntries(new FormData(form));
+    await act(async () => {
+      const b = await request(`/api/projects/${p.id}/comments`, values);
       update({ ...p, comments: b.comments });
       form.reset();
       setFeedback("댓글을 남겼습니다.");
-    } catch (e) {
-      setFeedback((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
+    });
   }
-  async function create(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setBusy(true);
-    setFeedback("");
-    try {
-      const b = await post("/api/projects", {
-        ...Object.fromEntries(new FormData(e.currentTarget)),
-        password,
-      });
-      setProjects((prev) => [b.project, ...prev]);
-      add.current?.close();
-      setAdding(false);
-    } catch (e) {
-      setFeedback((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
+  async function changeComment(id: string, remove = false) {
+    if (!p) return;
+    if (remove && !window.confirm("이 댓글을 삭제할까요?")) return;
+    await act(async () => {
+      const b = await request(
+        `/api/projects/${p.id}/comments/${id}`,
+        remove ? undefined : { content: commentDraft },
+        remove ? "DELETE" : "PATCH",
+      );
+      update({ ...p, comments: b.comments });
+      setEditingComment(null);
+      setFeedback(remove ? "댓글을 삭제했습니다." : "댓글을 수정했습니다.");
+    });
   }
   return (
     <>
@@ -122,26 +162,19 @@ export default function Projects({
           {["전체", "웹 프로젝트", "프로그램", "진행 중", "완료"].map((f) => (
             <button
               key={f}
+              className={f === filter ? "filter active" : "filter"}
               aria-pressed={f === filter}
               onClick={() => setFilter(f)}
-              className={f === filter ? "filter active" : "filter"}
             >
               {f}
             </button>
           ))}
         </div>
-        <button
-          className="button primary"
-          onClick={() => {
-            setAdding(true);
-            setVerified(false);
-            setPassword("");
-            setFeedback("");
-            add.current?.showModal();
-          }}
-        >
-          <Plus size={17} /> 프로젝트 추가
-        </button>
+        {admin && (
+          <button className="button primary" onClick={() => edit(null)}>
+            <Plus size={17} /> 프로젝트 추가
+          </button>
+        )}
       </div>
       <div className="results-line">
         <span>{visible.length}개의 프로젝트</span>
@@ -185,7 +218,9 @@ export default function Projects({
               <span className="project-status">{p.status}</span>
             </button>
             <div className="project-content">
-              <div><span className="chip project-category">{p.category}</span></div>
+              <div>
+                <span className="chip project-category">{p.category}</span>
+              </div>
               <button className="title-button" onClick={() => open(p)}>
                 <h2>{p.title}</h2>
               </button>
@@ -236,7 +271,7 @@ export default function Projects({
         ref={detail}
         onClose={() => {
           setSelected(null);
-          setFeedback("");
+          setEditingComment(null);
         }}
         onClick={(e) => {
           if (e.target === e.currentTarget) detail.current?.close();
@@ -287,6 +322,24 @@ export default function Projects({
                   </External>
                 )}
               </div>
+              {admin && (
+                <div className="actions admin-actions">
+                  <button
+                    className="button"
+                    disabled={busy}
+                    onClick={() => edit(p)}
+                  >
+                    프로젝트 수정
+                  </button>
+                  <button
+                    className="button danger"
+                    disabled={busy}
+                    onClick={() => removeProject(p)}
+                  >
+                    프로젝트 삭제
+                  </button>
+                </div>
+              )}
               <div className="comment-section">
                 <h3>
                   코멘트 <span className="accent">{p.comments.length}</span>
@@ -295,10 +348,67 @@ export default function Projects({
                   p.comments.map((c) => (
                     <article className="comment" key={c.id}>
                       <strong>{c.name}</strong>
+                      {!c.authorId && (
+                        <span className="legacy-label">기존 익명 댓글</span>
+                      )}
                       <time>
                         {new Date(c.createdAt).toLocaleDateString("ko-KR")}
                       </time>
-                      <p>{c.content}</p>
+                      {editingComment === c.id ? (
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            void changeComment(c.id);
+                          }}
+                        >
+                          <label>
+                            댓글 수정
+                            <textarea
+                              required
+                              maxLength={1000}
+                              value={commentDraft}
+                              onChange={(e) => setCommentDraft(e.target.value)}
+                            />
+                          </label>
+                          <div className="actions">
+                            <button className="button primary" disabled={busy}>
+                              저장
+                            </button>
+                            <button
+                              className="button"
+                              type="button"
+                              onClick={() => setEditingComment(null)}
+                            >
+                              취소
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <p>{c.content}</p>
+                      )}
+                      {(c.authorId === user?.id || admin) && (
+                        <div className="comment-controls">
+                          {c.authorId === user?.id && (
+                            <button
+                              className="button"
+                              disabled={busy}
+                              onClick={() => {
+                                setEditingComment(c.id);
+                                setCommentDraft(c.content);
+                              }}
+                            >
+                              수정
+                            </button>
+                          )}
+                          <button
+                            className="button danger"
+                            disabled={busy}
+                            onClick={() => changeComment(c.id, true)}
+                          >
+                            삭제
+                          </button>
+                        </div>
+                      )}
                     </article>
                   ))
                 ) : (
@@ -306,33 +416,31 @@ export default function Projects({
                     이 프로젝트의 첫 번째 코멘트를 남겨주세요.
                   </p>
                 )}
-                <form onSubmit={comment}>
-                  <label>
-                    이름
-                    <input
-                      name="name"
-                      required
-                      maxLength={40}
-                      placeholder="이름 또는 닉네임"
-                    />
-                  </label>
-                  <label>
-                    코멘트
-                    <textarea
-                      name="content"
-                      required
-                      maxLength={1000}
-                      rows={3}
-                      placeholder="프로젝트에 대한 생각을 들려주세요."
-                    />
-                  </label>
-                  <button
-                    className="button primary"
-                    disabled={busy || !connected}
-                  >
-                    {busy ? "저장 중…" : "코멘트 남기기"}
-                  </button>
-                </form>
+                {user ? (
+                  <form onSubmit={writeComment}>
+                    <p className="muted">{user.name} 님으로 작성합니다.</p>
+                    <label>
+                      코멘트
+                      <textarea
+                        name="content"
+                        required
+                        maxLength={1000}
+                        rows={3}
+                        placeholder="프로젝트에 대한 생각을 들려주세요."
+                      />
+                    </label>
+                    <button
+                      className="button primary"
+                      disabled={busy || !connected}
+                    >
+                      {busy ? "저장 중…" : "코멘트 남기기"}
+                    </button>
+                  </form>
+                ) : (
+                  <p className="notice">
+                    댓글을 작성하려면 <Link href="/login">로그인</Link>해주세요.
+                  </p>
+                )}
                 <p className="feedback" role="status">
                   {feedback}
                 </p>
@@ -342,70 +450,53 @@ export default function Projects({
         </div>
       </dialog>
       <dialog
-        ref={add}
+        ref={editor}
         onClose={() => {
           setAdding(false);
-          setFeedback("");
+          setEditingProject(null);
         }}
       >
         <div className="dialog-panel">
           <div className="dialog-heading">
-            <span className="eyebrow">ADD NEW PROJECT</span>
+            <span className="eyebrow">MANAGE PROJECT</span>
             <button
               className="icon-button"
-              aria-label="추가 닫기"
-              onClick={() => add.current?.close()}
+              aria-label="편집 닫기"
+              onClick={() => editor.current?.close()}
             >
               <X />
             </button>
           </div>
-          <h2>{verified ? "새 프로젝트" : "관리자 확인"}</h2>
-          {!verified ? (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (password === "5425") {
-                  setVerified(true);
-                  setFeedback("");
-                } else setFeedback("관리자 비밀번호가 올바르지 않습니다.");
-              }}
-            >
-              <p className="muted">
-                프로젝트를 추가하려면 관리자 비밀번호를 입력해주세요.
-              </p>
-              <label>
-                관리자 비밀번호
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  autoComplete="current-password"
-                  autoFocus
-                />
-              </label>
-              <button className="button primary">
-                확인하고 계속하기 <ArrowUpRight size={16} />
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={create}>
+          <h2>{editingProject ? "프로젝트 수정" : "새 프로젝트"}</h2>
+          {admin && (
+            <form key={editingProject?.id || "new"} onSubmit={save}>
               <label>
                 프로젝트 이름
-                <input name="title" required maxLength={100} />
+                <input
+                  name="title"
+                  required
+                  maxLength={100}
+                  defaultValue={editingProject?.title}
+                />
               </label>
               <div className="form-row">
                 <label>
                   구분
-                  <select name="category">
-                    <option>웹 프로젝트</option>
-                    <option>프로그램</option>
-                    <option>기타</option>
+                  <select
+                    name="category"
+                    defaultValue={editingProject?.category || "웹 프로젝트"}
+                  >
+                    {["웹 프로젝트", "프로그램", "기타"].map((v) => (
+                      <option key={v}>{v}</option>
+                    ))}
                   </select>
                 </label>
                 <label>
                   상태
-                  <select name="status">
+                  <select
+                    name="status"
+                    defaultValue={editingProject?.status || "진행 중"}
+                  >
                     <option>진행 중</option>
                     <option>완료</option>
                   </select>
@@ -413,7 +504,13 @@ export default function Projects({
               </div>
               <label>
                 간단한 설명
-                <textarea name="summary" required maxLength={500} rows={3} />
+                <textarea
+                  name="summary"
+                  required
+                  maxLength={500}
+                  rows={3}
+                  defaultValue={editingProject?.summary}
+                />
               </label>
               <label>
                 기술 스택
@@ -422,6 +519,7 @@ export default function Projects({
                   required
                   maxLength={2000}
                   placeholder="React, Next.js, MongoDB"
+                  defaultValue={editingProject?.tech.join(", ")}
                 />
               </label>
               <label>
@@ -430,16 +528,17 @@ export default function Projects({
                   name="features"
                   required
                   maxLength={2000}
-                  placeholder="기능을 줄바꿈 또는 쉼표로 구분해주세요."
                   rows={3}
+                  placeholder="줄바꿈 또는 쉼표로 구분해주세요."
+                  defaultValue={editingProject?.features.join("\n")}
                 />
               </label>
               <label>
-                배포 링크
+                배포 링크 (선택)
                 <input
                   name="deployUrl"
                   type="url"
-                  required
+                  defaultValue={editingProject?.deployUrl}
                   placeholder="https://"
                 />
               </label>
@@ -448,6 +547,7 @@ export default function Projects({
                 <input
                   name="githubUrl"
                   type="url"
+                  defaultValue={editingProject?.githubUrl}
                   placeholder="https://github.com/"
                 />
               </label>
@@ -456,19 +556,22 @@ export default function Projects({
                 <input
                   name="videoUrl"
                   type="url"
+                  defaultValue={editingProject?.videoUrl}
                   placeholder="https://youtu.be/"
                 />
               </label>
               <label>
                 대표 이미지 주소 (선택)
-                <input name="image" type="url" placeholder="https://" />
+                <input
+                  name="image"
+                  type="url"
+                  defaultValue={editingProject?.image}
+                  placeholder="https://"
+                />
               </label>
-              <button disabled={busy || !connected} className="button primary">
-                {busy ? "저장 중…" : "프로젝트 저장"} <Plus size={16} />
+              <button className="button primary" disabled={busy || !connected}>
+                {busy ? "저장 중…" : "프로젝트 저장"}
               </button>
-              {!connected && (
-                <p className="notice">MongoDB 연결 후 저장할 수 있습니다.</p>
-              )}
             </form>
           )}
           <p className="feedback" role="status">

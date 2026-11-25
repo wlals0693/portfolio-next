@@ -16,7 +16,8 @@ try {
   try {
     await mongoose.connect(process.env.MONGODB_URI, options);
   } catch (error) {
-    if (error?.code !== "ECONNREFUSED" || error?.syscall !== "querySrv") throw error;
+    if (error?.code !== "ECONNREFUSED" || error?.syscall !== "querySrv")
+      throw error;
     setServers(["1.1.1.1", "8.8.8.8"]);
     await mongoose.connect(process.env.MONGODB_URI, options);
   }
@@ -39,7 +40,12 @@ try {
     );
   console.log("기존 프로젝트 5개 시드 완료 (기존 데이터 유지).");
 } catch (error) {
-  console.error("MongoDB 연결/시드 실패:", error?.code || error?.name || "UnknownError", "단계:", error?.syscall || "connect");
+  console.error(
+    "MongoDB 연결/시드 실패:",
+    error?.code || error?.name || "UnknownError",
+    "단계:",
+    error?.syscall || "connect",
+  );
   process.exitCode = 1;
 } finally {
   await mongoose.disconnect();

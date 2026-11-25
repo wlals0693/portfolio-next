@@ -7,10 +7,7 @@ export const metadata = { title: "About Me" };
 export default function About() {
   return (
     <div className="container">
-      <PageTitle
-        number="03"
-        title="About Me"
-      />
+      <PageTitle number="03" title="About Me" />
       <section className="about-grid">
         <div className="profile-card">
           <div className="avatar">
@@ -69,8 +66,20 @@ export default function About() {
               <p>네트워크와 시스템에 대한 기초 역량</p>
             </div>
           </div>
-          <div className="activity"><span>04</span><div><h3>멋쟁이사자처럼 중앙해커톤</h3><p>Best Potential상 수상</p></div></div>
-          <div className="activity"><span>05</span><div><h3>어흥콘</h3><p>참신 부문 우수상 수상</p></div></div>
+          <div className="activity">
+            <span>04</span>
+            <div>
+              <h3>멋쟁이사자처럼 중앙해커톤</h3>
+              <p>Best Potential상 수상</p>
+            </div>
+          </div>
+          <div className="activity">
+            <span>05</span>
+            <div>
+              <h3>어흥콘</h3>
+              <p>참신 부문 우수상 수상</p>
+            </div>
+          </div>
         </div>
       </section>
       <section className="section">

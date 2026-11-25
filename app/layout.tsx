@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Header from "@/components/header";
+import AuthProvider from "@/components/auth-provider";
 import { External } from "@/components/shared";
 import { profile } from "@/lib/content";
 import "./globals.css";
@@ -25,8 +26,10 @@ export default function RootLayout({
         <a href="#main" className="skip-link">
           본문 바로가기
         </a>
-        <Header />
-        <main id="main">{children}</main>
+        <AuthProvider>
+          <Header />
+          <main id="main">{children}</main>
+        </AuthProvider>
         <footer>
           <div className="footer-inner">
             <div>

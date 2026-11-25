@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
 import { hasDatabase } from "./db";
 export class InputError extends Error {}
+export class HttpError extends Error {
+  constructor(
+    public status: number,
+    message: string,
+  ) {
+    super(message);
+  }
+}
 export function text(value: unknown, max: number, required = true) {
   if (
     typeof value !== "string" ||
@@ -25,6 +33,16 @@ export function databaseRequired() {
   if (!hasDatabase()) throw new Error("DB_NOT_CONFIGURED");
 }
 export function failure(error: unknown) {
+  if (error instanceof HttpError)
+    return NextResponse.json(
+      { error: error.message },
+      { status: error.status, headers: { "Cache-Control": "no-store" } },
+    );
+  if (error instanceof SyntaxError)
+    return NextResponse.json(
+      { error: "요청 형식이 올바르지 않습니다." },
+      { status: 400 },
+    );
   if (error instanceof InputError)
     return NextResponse.json({ error: error.message }, { status: 400 });
   return NextResponse.json(

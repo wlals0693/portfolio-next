@@ -1,4 +1,5 @@
 export type Comment = {
+  authorId: string | null;
   id: string;
   name: string;
   content: string;

@@ -3,8 +3,12 @@ export const profile = {
   github: "https://github.com/wlals0693",
   blog: "https://jimin0703.tistory.com",
   email: process.env.NEXT_PUBLIC_CONTACT_EMAIL || "example@gmail.com",
-  courseRepo: process.env.NEXT_PUBLIC_COURSE_REPO_URL || "https://github.com/wlals0693/server_programming",
-  courseDeploy: process.env.NEXT_PUBLIC_COURSE_DEPLOY_URL || "https://serverprogramming.vercel.app/",
+  courseRepo:
+    process.env.NEXT_PUBLIC_COURSE_REPO_URL ||
+    "https://github.com/wlals0693/server_programming",
+  courseDeploy:
+    process.env.NEXT_PUBLIC_COURSE_DEPLOY_URL ||
+    "https://serverprogramming.vercel.app/",
 };
 export const current = {
   name: "AI 디지털 옷장 서비스",
@@ -14,7 +18,10 @@ export const current = {
     { title: "기획 및 요구사항 정의", status: "완료" },
     { title: "UX / User Flow 설계", status: "완료" },
     { title: "시스템 및 AI 아키텍처 설계", status: "완료" },
-    { title: "FashionCLIP 추론 및 Compatibility 모델 초기 실행 검증", status: "완료" },
+    {
+      title: "FashionCLIP 추론 및 Compatibility 모델 초기 실행 검증",
+      status: "완료",
+    },
     { title: "실제 의류 데이터 기반 AI 품질 검증", status: "진행 과제" },
     { title: "웹서비스 기능 개발 및 통합", status: "진행 과제" },
     { title: "테스트 및 배포", status: "예정" },
